@@ -12,7 +12,7 @@ An offline-state auditor for web and Android apps. Deadzone cuts the network on 
 ![Chrome MV3](https://img.shields.io/badge/Chrome-Manifest_V3-4285F4?logo=googlechrome&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 
-[Live console](https://fbailogic26vrt-3003.web.app) · [Demo app (buggy)](https://dz-3003-buggy.web.app) · [Demo app (fixed)](https://dz-3003-fixed.web.app) · [Workspace preview](https://fbailogic26vrt-3003.web.app/preview)
+[Live console](https://fbailogic26vrt-3003.web.app) · [Extension download](releases/deadzone-extension-0.2.0.zip) · [Demo app (buggy)](https://dz-3003-buggy.web.app) · [Demo app (fixed)](https://dz-3003-fixed.web.app) · [Workspace preview](https://fbailogic26vrt-3003.web.app/preview)
 
 </div>
 
@@ -240,8 +240,10 @@ pnpm build        # typecheck and build the extension, console and both demo var
 
 ### 4. Load the Chrome extension
 
+A prebuilt evaluation build is included: **[releases/deadzone-extension-0.2.0.zip](releases/deadzone-extension-0.2.0.zip)** (download and unzip it), or use your own build in `apps/extension/dist`.
+
 1. Open `chrome://extensions` and enable **Developer mode**.
-2. Click **Load unpacked** and select `apps/extension/dist`.
+2. Click **Load unpacked** and select the unzipped folder (or `apps/extension/dist`).
 3. Open the side panel. On **Setup**, download the on-device model if prompted, and register the App Check debug token printed in the panel's DevTools console (Firebase console → App Check → Manage debug tokens).
 
 ### 5. Run a sweep
