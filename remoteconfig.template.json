@@ -1,0 +1,47 @@
+{
+  "parameters": {
+    "dz_spinner_timeout_ms": {
+      "defaultValue": {
+        "value": "10000"
+      },
+      "valueType": "NUMBER"
+    },
+    "dz_settle_ms": {
+      "defaultValue": {
+        "value": "3000"
+      },
+      "valueType": "NUMBER"
+    },
+    "dz_blank_text_threshold": {
+      "defaultValue": {
+        "value": "40"
+      },
+      "valueType": "NUMBER"
+    },
+    "dz_cloud_model": {
+      "defaultValue": {
+        "value": "gemini-3.5-flash-lite"
+      },
+      "valueType": "STRING"
+    },
+    "dz_prompt_version": {
+      "defaultValue": {
+        "value": "v2"
+      },
+      "valueType": "STRING"
+    },
+    "dz_max_checks": {
+      "defaultValue": {
+        "value": "30"
+      },
+      "valueType": "NUMBER"
+    },
+    "dz_thumb_max_kb": {
+      "defaultValue": {
+        "value": "120"
+      },
+      "valueType": "NUMBER"
+    }
+  },
+  "conditions": []
+}

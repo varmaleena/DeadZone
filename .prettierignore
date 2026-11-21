@@ -1,0 +1,14 @@
+node_modules
+.pnpm-store
+**/dist
+**/dist-*
+**/.test-build
+output
+tmp
+test-results
+playwright-report
+android
+pnpm-lock.yaml
+firestore.rules
+*.md
+apps/freshcart/public/api

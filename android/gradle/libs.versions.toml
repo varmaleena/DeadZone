@@ -1,0 +1,28 @@
+# Single source of truth for Android plugin and library versions.
+# Verify Firebase versions against the Firebase Android release notes before upgrading;
+# firebase-ai-ondevice is a beta artifact used for hybrid (on-device) inference.
+[versions]
+agp = "8.9.2"
+kotlin = "2.1.20"
+googleServices = "4.4.2"
+firebaseAi = "18.2.0"
+firebaseAiOnDevice = "16.0.0-beta08"
+firebaseFirestore = "25.1.4"
+firebaseAuth = "23.2.0"
+firebaseAppCheckDebug = "20.1.0"
+coroutines = "1.10.2"
+
+[libraries]
+firebase-ai = { module = "com.google.firebase:firebase-ai", version.ref = "firebaseAi" }
+firebase-ai-ondevice = { module = "com.google.firebase:firebase-ai-ondevice", version.ref = "firebaseAiOnDevice" }
+firebase-firestore = { module = "com.google.firebase:firebase-firestore", version.ref = "firebaseFirestore" }
+firebase-auth = { module = "com.google.firebase:firebase-auth", version.ref = "firebaseAuth" }
+firebase-appcheck-debug = { module = "com.google.firebase:firebase-appcheck-debug", version.ref = "firebaseAppCheckDebug" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "coroutines" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

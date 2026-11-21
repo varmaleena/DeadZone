@@ -1,0 +1,33 @@
+{
+  "name": "deadzone",
+  "private": true,
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @deadzone/freshcart dev",
+    "build": "node scripts/check.mjs --build",
+    "typecheck": "node scripts/check.mjs",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check:encoding": "node scripts/check-encoding.mjs",
+    "test": "node scripts/test-audit.mjs",
+    "test:browser": "node scripts/build-freshcart.mjs && playwright test",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-deadzone \"node scripts/test-rules.mjs\"",
+    "test:extension": "node scripts/test-extension-runtime.mjs"
+  },
+  "packageManager": "pnpm@11.25.0",
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "@playwright/test": "^1.65.1",
+    "eslint": "^9.39.5",
+    "firebase-tools": "^15.37.0",
+    "globals": "^16.5.0",
+    "prettier": "^3.10.1",
+    "typescript-eslint": "^8.73.0"
+  },
+  "type": "module"
+}

@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Deadzone</title>
+    <link rel="stylesheet" href="/src/panel/panel.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <img src="/icons/icon-32.png" alt="" width="20" height="20" />
+        <div>
+          <strong>DEADZONE</strong>
+          <span id="workspace-label">Local only</span>
+        </div>
+      </div>
+      <div class="chips" aria-live="polite">
+        <span id="network-chip" class="chip">ONLINE</span>
+        <span id="nano-chip" class="chip" title="On-device model status">NANO …</span>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="Deadzone sections">
+      <button role="tab" data-tab="setup" id="tab-setup">Setup</button>
+      <button role="tab" data-tab="sweep" id="tab-sweep" aria-selected="true">Sweep</button>
+      <button role="tab" data-tab="results" id="tab-results">Results</button>
+      <button role="tab" data-tab="settings" id="tab-settings">Settings</button>
+    </nav>
+
+    <main>
+      <!-- SETUP -->
+      <section id="view-setup" class="view" role="tabpanel" aria-labelledby="tab-setup" hidden>
+        <h1>Set up Deadzone</h1>
+        <ol class="checklist">
+          <li id="step-model">
+            <h2>1. On-device model</h2>
+            <p id="model-help">Checking whether Gemini Nano is available in this Chrome…</p>
+            <button id="prepare" class="secondary">Download on-device model</button>
+            <progress id="model-progress" value="0" max="100" hidden></progress>
+          </li>
+          <li id="step-workspace">
+            <h2>2. Team workspace <small>(optional)</small></h2>
+            <p>
+              Copy the workspace ID and pairing code from the Deadzone console's Settings page. Without a workspace,
+              results stay on this computer.
+            </p>
+            <label>Workspace ID <input id="workspace" autocomplete="off" spellcheck="false" /></label>
+            <label
+              >Pairing code
+              <input id="pair-code" maxlength="8" autocomplete="off" spellcheck="false" placeholder="8 characters"
+            /></label>
+            <div class="row">
+              <button id="pair">Pair workspace</button>
+              <button id="unpair" class="ghost" hidden>Unpair</button>
+            </div>
+          </li>
+          <li id="step-target">
+            <h2>3. App to test</h2>
+            <p>
+              Open your web app in the active tab. Deadzone asks for access to that site only when you start a sweep.
+            </p>
+            <p class="mono" id="target-url">No tab selected</p>
+          </li>
+        </ol>
+      </section>
+
+      <!-- SWEEP -->
+      <section id="view-sweep" class="view" role="tabpanel" aria-labelledby="tab-sweep">
+        <h1>Sweep</h1>
+        <div class="card">
+          <h2>User actions</h2>
+          <ul id="plan-list" class="plan-list"></ul>
+          <details>
+            <summary>Edit sweep plan (JSON)</summary>
+            <textarea id="plan" rows="14" spellcheck="false" aria-label="Sweep plan JSON"></textarea>
+            <p id="plan-error" class="error" role="alert"></p>
+          </details>
+        </div>
+        <div class="card">
+          <h2>Network profiles</h2>
+          <label class="toggle"><input type="checkbox" id="profile-offline" checked /> Offline</label>
+          <label class="toggle"
+            ><input type="checkbox" id="profile-flaky" /> Flaky (slow, then drops mid-request)</label
+          >
+        </div>
+        <details class="card">
+          <summary>Link source folder (for code fixes)</summary>
+          <p>
+            Pick your app's folder. Only application source files are used (no dependencies, build output, tests or
+            secret files), up to 60 KB.
+          </p>
+          <input id="sources" type="file" multiple webkitdirectory />
+          <pre id="source-list" class="mono small">No folder linked</pre>
+          <label class="toggle"
+            ><input type="checkbox" id="share-source" /> Send these files to cloud Gemini when diagnosing</label
+          >
+        </details>
+        <div class="row sticky-actions">
+          <button id="start" class="primary">Start sweep</button>
+          <button id="cancel" class="ghost" disabled>Cancel</button>
+        </div>
+        <div id="live" class="live" hidden>
+          <progress id="progress" value="0" max="1"></progress>
+          <p id="step-text" class="small"></p>
+        </div>
+        <div id="live-results" class="cards"></div>
+      </section>
+
+      <!-- RESULTS -->
+      <section id="view-results" class="view" role="tabpanel" aria-labelledby="tab-results" hidden>
+        <div id="results-summary"></div>
+        <div class="row">
+          <button id="diagnose" class="primary">Diagnose in cloud</button>
+          <button id="baseline" class="secondary">Save as baseline</button>
+          <button id="export" class="ghost">Export JSON</button>
+        </div>
+        <h2 id="findings-title" hidden>Findings</h2>
+        <div id="findings" class="cards"></div>
+        <h2>Checks</h2>
+        <div id="results" class="cards"></div>
+      </section>
+
+      <!-- DETAIL -->
+      <section id="view-detail" class="view" hidden>
+        <button id="back" class="ghost">← Back to results</button>
+        <div id="detail"></div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="view-settings" class="view" role="tabpanel" aria-labelledby="tab-settings" hidden>
+        <h1>Settings</h1>
+        <div class="card">
+          <h2>On-device model</h2>
+          <p id="settings-model">—</p>
+          <button id="recheck" class="secondary">Check again</button>
+        </div>
+        <div class="card">
+          <h2>Judging rubric</h2>
+          <dl id="rubric" class="kv"></dl>
+        </div>
+        <div class="card">
+          <h2>Local data</h2>
+          <p>Results, baseline and screenshots stored on this computer.</p>
+          <button id="clear-local" class="ghost">Clear local results</button>
+        </div>
+        <div class="card">
+          <h2>About</h2>
+          <p id="about"></p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="statusbar">
+      <span id="status" role="status">Ready</span>
+      <span id="sync" class="small"></span>
+    </footer>
+
+    <script type="module" src="/src/panel/main.ts"></script>
+  </body>
+</html>

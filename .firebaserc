@@ -1,0 +1,20 @@
+{
+  "projects": {
+    "default": "fbailogic26vrt-3003"
+  },
+  "targets": {
+    "fbailogic26vrt-3003": {
+      "hosting": {
+        "console": [
+          "fbailogic26vrt-3003"
+        ],
+        "freshcart-buggy": [
+          "dz-3003-buggy"
+        ],
+        "freshcart-fixed": [
+          "dz-3003-fixed"
+        ]
+      }
+    }
+  }
+}

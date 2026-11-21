@@ -1,0 +1,41 @@
+# Dependencies and package stores
+node_modules/
+.pnpm-store/
+.uv-cache/
+
+# Build output
+dist/
+dist-*/
+**/.test-build/
+output/
+android/.gradle/
+android/**/build/
+android/local.properties
+android/.idea/
+*.apk
+*.aab
+
+# Environment and secrets (Firebase web config goes in .env.local; never commit tokens)
+.env
+.env.*
+!.env.example
+**/google-services.json
+*.keystore
+*.jks
+
+# Firebase local state and logs
+.firebase/
+*-debug.log
+*-debug.*.log
+*.log
+
+# Test artefacts and scratch
+test-results/
+playwright-report/
+tmp/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

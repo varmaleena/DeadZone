@@ -1,0 +1,68 @@
+[
+  {
+    "id": "home-load",
+    "label": "Open home",
+    "route": "/",
+    "steps": [
+      {
+        "type": "navigate"
+      }
+    ]
+  },
+  {
+    "id": "cart-view",
+    "label": "View cart",
+    "route": "/cart",
+    "steps": [
+      {
+        "type": "navigate"
+      }
+    ]
+  },
+  {
+    "id": "checkout-submit",
+    "label": "Place order",
+    "route": "/checkout",
+    "steps": [
+      {
+        "type": "fill",
+        "selector": "#name",
+        "value": "Asha Rao"
+      },
+      {
+        "type": "fill",
+        "selector": "#street",
+        "value": "12 Lake View Rd"
+      },
+      {
+        "type": "fill",
+        "selector": "#city",
+        "value": "Springfield"
+      },
+      {
+        "type": "submit",
+        "selector": "#place-order"
+      }
+    ]
+  },
+  {
+    "id": "profile-load",
+    "label": "Open profile",
+    "route": "/profile",
+    "steps": [
+      {
+        "type": "navigate"
+      }
+    ]
+  },
+  {
+    "id": "orders-load",
+    "label": "Open orders",
+    "route": "/orders",
+    "steps": [
+      {
+        "type": "navigate"
+      }
+    ]
+  }
+]

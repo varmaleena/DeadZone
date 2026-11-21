@@ -1,0 +1,144 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Membership check for documents nested under a workspace.
+    function member(wid) {
+      return signedIn()
+        && request.auth.uid in get(/databases/$(database)/documents/workspaces/$(wid)).data.memberUids;
+    }
+
+    // ---------------------------------------------------------------------
+    // FreshCart demo orders (fixed variant). Each anonymous shopper owns
+    // their own orders; identical retries are allowed, edits are not.
+    // ---------------------------------------------------------------------
+    match /freshcart_orders/{orderId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['ownerUid', 'address', 'items', 'createdAt', 'status'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.address is list
+        && request.resource.data.address.size() == 4
+        && (!('items' in request.resource.data)
+            || (request.resource.data.items is list && request.resource.data.items.size() <= 30))
+        && request.resource.data.status == 'queued';
+
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
+
+      allow update: if signedIn()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data == resource.data;
+    }
+
+    // ---------------------------------------------------------------------
+    // Workspaces. Reads are checked against the document itself (not via
+    // get()), so list queries such as
+    //   where('memberUids', 'array-contains', uid)
+    // used by the console can be proven by the rules engine.
+    // ---------------------------------------------------------------------
+    match /workspaces/{wid} {
+      allow get, list: if signedIn() && request.auth.uid in resource.data.memberUids;
+
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.memberUids == [request.auth.uid];
+
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+
+      allow update: if signedIn() && (
+        // Owner may edit the workspace but may not transfer ownership or remove themselves.
+        (resource.data.ownerUid == request.auth.uid
+          && request.resource.data.ownerUid == resource.data.ownerUid
+          && resource.data.ownerUid in request.resource.data.memberUids)
+        ||
+        // Pairing: a signed-in client adds exactly itself, only with the current code,
+        // and only before the code expires (codes are rotated from the console).
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids', 'lastJoinCode'])
+          && 'pairingExpiresAt' in resource.data
+          && request.time < resource.data.pairingExpiresAt
+          && request.resource.data.lastJoinCode == resource.data.pairingCode
+          && request.resource.data.memberUids is list
+          && request.resource.data.memberUids.toSet().hasAll(resource.data.memberUids.toSet())
+          && request.resource.data.memberUids.toSet().difference(resource.data.memberUids.toSet())
+               == [request.auth.uid].toSet()
+          && request.resource.data.memberUids.size() == resource.data.memberUids.size() + 1)
+      );
+
+      // Workspace data: members only, with type, enum and size validation so a client
+      // can't write malformed or oversized documents.
+      match /runs/{runId} {
+        allow read, delete: if member(wid);
+        allow create, update: if member(wid) && validRun(request.resource.data);
+
+        match /checks/{checkId} {
+          allow read, delete: if member(wid);
+          allow create, update: if member(wid) && validCheck(request.resource.data);
+        }
+      }
+
+      match /findings/{findingId} {
+        allow read, delete: if member(wid);
+        allow create, update: if member(wid) && validFinding(request.resource.data);
+      }
+
+      match /fieldEvents/{eventId} {
+        allow read, delete: if member(wid);
+        allow create, update: if member(wid) && validFieldEvent(request.resource.data);
+      }
+
+      match /devices/{deviceId} {
+        allow read, delete: if member(wid);
+        allow create, update: if member(wid) && validDevice(request.resource.data);
+      }
+    }
+
+    // ---------------------------------------------------------------------
+    // Validation helpers
+    // ---------------------------------------------------------------------
+    function optionalString(d, key, max) {
+      return !(key in d) || (d[key] is string && d[key].size() <= max);
+    }
+
+    function judgedByValid(d) {
+      return d.judgedBy in ['on_device', 'cloud', 'pending'];
+    }
+
+    function validRun(d) {
+      return (!('status' in d) || d.status in ['running', 'complete', 'diagnosing', 'diagnosed'])
+        && (!('offlineScore' in d) || d.offlineScore == null
+            || (d.offlineScore is number && d.offlineScore >= 0 && d.offlineScore <= 100))
+        && optionalString(d, 'appUrl', 500)
+        && optionalString(d, 'promptVersion', 40);
+    }
+
+    function validCheck(d) {
+      return judgedByValid(d)
+        && optionalString(d, 'thumbOnline', 170000)
+        && optionalString(d, 'thumbOffline', 170000)
+        && optionalString(d, 'route', 500);
+    }
+
+    function validFinding(d) {
+      return d.status in ['open', 'fixed', 'regressed']
+        && d.title is string && d.title.size() <= 120
+        && optionalString(d, 'fixDiff', 200000)
+        && optionalString(d, 'rootCause', 4000);
+    }
+
+    function validFieldEvent(d) {
+      return judgedByValid(d)
+        && d.screen is string && d.screen.size() <= 200
+        && optionalString(d, 'thumb', 170000);
+    }
+
+    function validDevice(d) {
+      return d.platform in ['chrome', 'android']
+        && d.nanoStatus in ['available', 'downloadable', 'downloading', 'unavailable', 'unknown']
+        && optionalString(d, 'model', 200);
+    }
+  }
+}

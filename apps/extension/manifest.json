@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Deadzone – Offline State Auditor",
+  "short_name": "Deadzone",
+  "description": "Tests how your web app behaves offline, judging each screen with on-device Gemini Nano.",
+  "version": "0.2.0",
+  "minimum_chrome_version": "139",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": ["sidePanel", "debugger", "tabs", "activeTab", "scripting", "storage", "unlimitedStorage"],
+  "host_permissions": [
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "https://dz-3003-buggy.web.app/*",
+    "https://dz-3003-fixed.web.app/*"
+  ],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "action": {
+    "default_title": "Open Deadzone",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  }
+}
