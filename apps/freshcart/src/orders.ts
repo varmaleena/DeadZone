@@ -19,6 +19,8 @@ export interface LocalOrder {
   address: string[];
   status: string;
   items?: CartItem[];
+  /** True once the order has been written to Firestore. */
+  uploaded?: boolean;
 }
 
 function initialize() {
@@ -65,6 +67,31 @@ export function queueOrder(
   return order;
 }
 
+/** Simulated order service: the store needs a few seconds to accept an order. */
+export const ORDER_PROCESSING_MS = 6000;
+
+/** Marks a locally saved order as accepted by the store. */
+export function markPlaced(id: string) {
+  const orders = readOrders();
+  const order = orders.find((o) => o.id === id);
+  if (order) {
+    order.status = 'placed';
+    localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+  }
+}
+
+/**
+ * Sends one order to the store. Waits for the (simulated) processing time first; if the
+ * connection is lost at any point the request fails and the caller decides what to do.
+ */
+export async function submitOrder(): Promise<void> {
+  if (!navigator.onLine) throw new Error('offline');
+  await new Promise((resolve) => setTimeout(resolve, ORDER_PROCESSING_MS));
+  if (!navigator.onLine) throw new Error('offline');
+  const response = await fetch('/api/products.json', { cache: 'no-store' });
+  if (!response.ok) throw new Error('Order service unavailable');
+}
+
 export function readOrders(): LocalOrder[] {
   try {
     const values = JSON.parse(localStorage.getItem(ORDERS_KEY) || '[]');
@@ -83,7 +110,7 @@ export async function syncOrders() {
   try {
     const client = (services ??= initialize());
     const user = client.auth.currentUser ?? (await signInAnonymously(client.auth)).user;
-    for (const order of readOrders().filter((o) => o.status === 'queued')) {
+    for (const order of readOrders().filter((o) => !o.uploaded)) {
       await setDoc(doc(client.db, 'freshcart_orders', order.id), {
         ownerUid: user.uid,
         address: order.address,
@@ -94,7 +121,7 @@ export async function syncOrders() {
       const current = readOrders();
       const index = current.findIndex((o) => o.id === order.id);
       if (index >= 0) {
-        current[index].status = 'synced';
+        current[index].uploaded = true;
         localStorage.setItem(ORDERS_KEY, JSON.stringify(current));
       }
     }

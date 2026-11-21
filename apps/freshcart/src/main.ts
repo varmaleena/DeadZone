@@ -1,5 +1,5 @@
 import { readCart, addItem, setQuantity, cartTotal, money, clearCart } from './cart';
-import { queueOrder, readOrders, startOrderSync, syncOrders } from './orders';
+import { markPlaced, queueOrder, readOrders, startOrderSync, submitOrder, syncOrders } from './orders';
 import './style.css';
 const fixed = (import.meta as unknown as { env: Record<string, string> }).env.VITE_OFFLINE_FIX === 'true';
 const products = [
@@ -160,45 +160,73 @@ async function render() {
       e.preventDefault();
       const button = screen.querySelector<HTMLButtonElement>('button')!;
       const notice = screen.querySelector<HTMLElement>('#notice')!;
+      const address = Array.from(form.querySelectorAll('input')).map((i) => i.value);
+      const processing = (text: string) =>
+        `<div class="loading-state"><span>${text}</span><div role="progressbar" aria-label="${text}" class="loading-track"><i></i></div></div>`;
+
       if (fixed) {
+        // Offline-ready: save on the device first, then send. If the connection drops, keep the
+        // address and the order, and place it automatically when the connection returns.
+        let saved;
         try {
-          const queuedOrder = queueOrder(
-            Array.from(form.querySelectorAll('input')).map((i) => i.value),
-            readCart(),
-          );
-          clearCart();
-          basketBar();
-          button.disabled = true;
-          if (navigator.onLine) {
-            // Online: send now and show the confirmation; if sending fails it stays queued and retries.
-            void syncOrders()
-              .catch(() => undefined)
-              .finally(() => navigate('/order-confirmation?id=' + queuedOrder.id));
-            notice.textContent = 'Placing your order…';
-            return;
-          }
-          const next = document.createElement('a');
-          next.className = 'action-link';
-          next.href = '/order-confirmation?id=' + queuedOrder.id;
-          next.textContent = 'View order confirmation →';
-          notice.after(next);
-          notice.textContent = "You're offline — we'll place your order when you're back.";
+          saved = queueOrder(address, readCart());
         } catch {
           notice.textContent = 'Could not save this order. Your address is preserved; please retry.';
+          return;
+        }
+        clearCart();
+        basketBar();
+        button.disabled = true;
+        const confirmation = '/order-confirmation?id=' + saved.id;
+        const showLink = () => {
+          if (screen.querySelector('#confirmation-link')) return;
+          const next = document.createElement('a');
+          next.id = 'confirmation-link';
+          next.className = 'action-link';
+          next.href = confirmation;
+          next.textContent = 'View order confirmation →';
+          notice.after(next);
+        };
+        const place = async () => {
+          await submitOrder();
+          markPlaced(saved.id);
+          void syncOrders().catch(() => undefined);
+        };
+        notice.innerHTML = processing('Placing your order…');
+        try {
+          await place();
+          navigate(confirmation);
+        } catch {
+          if (!notice.isConnected) return;
+          notice.textContent =
+            "You're offline — we'll place your order when you're back. Your address and basket are saved on this device.";
+          showLink();
+          window.addEventListener(
+            'online',
+            async () => {
+              if (!notice.isConnected) return;
+              notice.innerHTML = processing('Back online — placing your order…');
+              try {
+                await place();
+                if (notice.isConnected) notice.textContent = '✓ Back online — your order has been placed.';
+              } catch {
+                if (notice.isConnected)
+                  notice.textContent = 'Still offline. Your order is saved and will be placed automatically.';
+              }
+            },
+            { once: true },
+          );
         }
         return;
       }
 
+      // Standard (buggy) build: works online, but if the connection drops while the order is
+      // processing it fails, wipes the form and leaves the spinner running — the bug Deadzone finds.
       button.disabled = true;
-      notice.innerHTML = spinner;
+      notice.innerHTML = processing('Placing your order…');
       try {
-        const response = await fetch('/api/products.json', { cache: 'no-store' });
-        if (!response.ok) throw new Error('Order service unavailable');
-        const order = queueOrder(
-          Array.from(form.querySelectorAll('input')).map((i) => i.value),
-          readCart(),
-          'placed',
-        );
+        await submitOrder();
+        const order = queueOrder(address, readCart(), 'placed');
         clearCart();
         navigate('/order-confirmation?id=' + order.id);
       } catch {
@@ -320,5 +348,9 @@ if (fixed)
   startOrderSync(() => {
     /* Queue remains on device for retry. */
   });
-else window.addEventListener('online', () => void render());
+else
+  window.addEventListener('online', () => {
+    // The standard build reloads data on reconnect, but a failed checkout stays broken.
+    if (location.pathname !== '/checkout') void render();
+  });
 void render();

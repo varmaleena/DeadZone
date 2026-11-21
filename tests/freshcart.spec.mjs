@@ -198,10 +198,40 @@ for (const fixed of [false, true]) {
     await page.locator('#city').fill('Springfield');
     await page.locator('#pin').fill('560001');
     await page.getByRole('button', { name: /Place order/ }).click();
-    await expect(page).toHaveURL(/order-confirmation/);
+    await expect(page).toHaveURL(/order-confirmation/, { timeout: 15000 });
     await expect(page.getByText(/Orchard apples × 1/)).toBeVisible();
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('freshcart-cart') || '[]').length)).toBe(0);
     await page.getByRole('link', { name: /View your orders/ }).click();
     await expect(page.getByRole('heading', { name: 'Your orders' })).toBeVisible();
+  });
+}
+
+for (const fixed of [false, true]) {
+  test(`connection drops while the order is processing (${fixed ? 'fixed' : 'buggy'})`, async ({ page, context }) => {
+    test.setTimeout(60000);
+    const base = `http://127.0.0.1:${fixed ? 5182 : 5181}`;
+    await page.goto(base + '/checkout');
+    await page.locator('#name').fill('Asha Rao');
+    await page.locator('#street').fill('12 Lake View Rd');
+    await page.locator('#city').fill('Springfield');
+    await page.getByRole('button', { name: /Place order/ }).click();
+    await expect(page.getByRole('progressbar', { name: 'Placing your order…' })).toBeVisible();
+    await context.setOffline(true);
+    if (fixed) {
+      await expect(page.locator('#notice')).toContainText("we'll place your order", { timeout: 15000 });
+      await expect(page.locator('#name')).toHaveValue('Asha Rao');
+      await context.setOffline(false);
+      await expect(page.locator('#notice')).toContainText('your order has been placed', { timeout: 20000 });
+      expect(await page.evaluate(() => JSON.parse(localStorage.getItem('freshcart-orders') || '[]')[0].status)).toBe(
+        'placed',
+      );
+    } else {
+      await expect(page.locator('#name')).toHaveValue('', { timeout: 15000 });
+      await context.setOffline(false);
+      await page.waitForTimeout(1000);
+      await expect(page.getByRole('progressbar')).toBeVisible();
+      await expect(page.locator('#name')).toHaveValue('');
+      expect(await page.evaluate(() => JSON.parse(localStorage.getItem('freshcart-orders') || '[]').length)).toBe(0);
+    }
   });
 }
