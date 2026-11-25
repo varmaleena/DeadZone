@@ -1,10 +1,14 @@
 import { test, expect } from '@playwright/test';
+const baseUrl = (fixed) =>
+  process.env.DZ_HOSTED === 'true'
+    ? `https://dz-work-511514-${fixed ? 'fixed' : 'buggy'}.web.app`
+    : `http://127.0.0.1:${fixed ? 5182 : 5181}`;
 for (const fixed of [false, true]) {
   const base =
     process.env.DZ_HOSTED === 'true'
       ? fixed
-        ? 'https://dz-3003-fixed.web.app'
-        : 'https://dz-3003-buggy.web.app'
+        ? 'https://dz-work-511514-fixed.web.app'
+        : 'https://dz-work-511514-buggy.web.app'
       : `http://127.0.0.1:${fixed ? 5182 : 5181}`;
   test.describe(fixed ? 'fixed' : 'buggy', () => {
     test('home after connection loss', async ({ page, context }) => {
@@ -72,7 +76,7 @@ for (const fixed of [false, true]) {
 
 test('fixed checkout keeps input when local persistence fails', async ({ page, context }) => {
   await page.goto(
-    process.env.DZ_HOSTED === 'true' ? 'https://dz-3003-fixed.web.app/checkout' : 'http://127.0.0.1:5182/checkout',
+    process.env.DZ_HOSTED === 'true' ? 'https://dz-work-511514-fixed.web.app/checkout' : 'http://127.0.0.1:5182/checkout',
   );
   await page.locator('#name').fill('Asha Rao');
   await page.locator('#street').fill('12 Lake View Rd');
@@ -91,7 +95,7 @@ test('fixed checkout keeps input when local persistence fails', async ({ page, c
 
 for (const fixed of [false, true])
   test(`functional basket ${fixed ? 'fixed' : 'buggy'}`, async ({ page, context }) => {
-    const base = `http://127.0.0.1:${fixed ? 5182 : 5181}`;
+    const base = baseUrl(fixed);
     await page.goto(base);
     await expect(page.getByRole('heading', { name: 'Orchard apples', exact: true })).toBeVisible();
     const apple = page
@@ -113,7 +117,7 @@ for (const fixed of [false, true])
   });
 
 test('checkout reference layout remains responsive', async ({ page }) => {
-  await page.goto('http://127.0.0.1:5182/checkout');
+  await page.goto(baseUrl(true) + '/checkout');
   await page.evaluate(() =>
     localStorage.setItem(
       'freshcart-cart',
@@ -134,7 +138,7 @@ test('checkout reference layout remains responsive', async ({ page }) => {
 });
 
 test('shopping journey with images search and next steps', async ({ page, context }) => {
-  await page.goto('http://127.0.0.1:5182');
+  await page.goto(baseUrl(true));
   await expect(page.getByRole('heading', { name: 'Orchard apples', exact: true })).toBeVisible();
   const images = page.locator('.product-image img');
   await expect(images).toHaveCount(12);
@@ -169,7 +173,7 @@ test('shopping journey with images search and next steps', async ({ page, contex
   await expect(page.getByRole('link', { name: 'Continue shopping', exact: true })).toBeVisible();
 });
 test('storefront desktop and mobile layout', async ({ page }) => {
-  await page.goto('http://127.0.0.1:5182');
+  await page.goto(baseUrl(true));
   await expect(page.getByRole('heading', { name: 'Orchard apples', exact: true })).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({ path: 'output/ui/freshcart-storefront-desktop.png', fullPage: true });
@@ -180,7 +184,7 @@ test('storefront desktop and mobile layout', async ({ page }) => {
 
 for (const fixed of [false, true]) {
   test(`online order is placed and confirmed (${fixed ? 'fixed' : 'buggy'})`, async ({ page }) => {
-    const base = `http://127.0.0.1:${fixed ? 5182 : 5181}`;
+    const base = baseUrl(fixed);
     await page.goto(base);
     const apple = page
       .locator('article')
@@ -209,7 +213,7 @@ for (const fixed of [false, true]) {
 for (const fixed of [false, true]) {
   test(`connection drops while the order is processing (${fixed ? 'fixed' : 'buggy'})`, async ({ page, context }) => {
     test.setTimeout(60000);
-    const base = `http://127.0.0.1:${fixed ? 5182 : 5181}`;
+    const base = baseUrl(fixed);
     await page.goto(base + '/checkout');
     await page.locator('#name').fill('Asha Rao');
     await page.locator('#street').fill('12 Lake View Rd');

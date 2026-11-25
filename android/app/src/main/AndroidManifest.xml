@@ -7,6 +7,7 @@
         android:name=".DeadzoneApp"
         android:allowBackup="false"
         android:label="Deadzone Field"
+        android:icon="@drawable/deadzone_logo"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity
             android:name=".MainActivity"

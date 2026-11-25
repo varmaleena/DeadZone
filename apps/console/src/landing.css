@@ -1,20 +1,20 @@
 /* Public home page. Scoped under .lp so it never affects the signed-in console. */
 .lp {
-  --lp-ink: #13232f;
-  --lp-text: #3d4f5c;
-  --lp-muted: #6b7c88;
-  --lp-line: #dbe3e8;
-  --lp-panel: #e4eaee;
-  --lp-panel-2: #eef2f4;
-  --lp-bg: #fefefe;
-  --lp-teal: #0f8a7e;
-  --lp-blue: #2f6fe4;
+  --lp-ink: var(--dz-ink);
+  --lp-text: var(--dz-text);
+  --lp-muted: var(--dz-muted);
+  --lp-line: var(--dz-line);
+  --lp-panel: var(--dz-panel);
+  --lp-panel-2: var(--dz-panel-soft);
+  --lp-bg: var(--dz-bg);
+  --lp-teal: var(--dz-accent);
+  --lp-blue: #526b80;
   --lp-red: #e5484d;
   --lp-amber: #d18b0f;
-  --lp-display: 'Bricolage Grotesque', 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+  --lp-display: var(--dz-display);
   background: var(--lp-bg);
   color: var(--lp-text);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--dz-font);
   font-size: 16px;
   line-height: 1.6;
 }
@@ -83,12 +83,12 @@
 }
 
 .lp-btn-dark {
-  background: var(--lp-ink);
+  background: var(--lp-teal);
   color: #fff;
 }
 
 .lp-btn-dark:hover {
-  background: #0b1720;
+  background: var(--dz-accent-hover);
   color: #fff;
 }
 

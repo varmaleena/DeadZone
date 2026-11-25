@@ -1,0 +1,16 @@
+/* One palette and type system for the public site and every workspace page. */
+:root {
+  --dz-ink: #202c30;
+  --dz-text: #48565b;
+  --dz-muted: #69777b;
+  --dz-line: #dce1dd;
+  --dz-bg: #f6f7f3;
+  --dz-surface: #ffffff;
+  --dz-panel: #e9ede6;
+  --dz-panel-soft: #f0f3ee;
+  --dz-accent: #37665e;
+  --dz-accent-hover: #294e48;
+  --dz-accent-soft: #e8f0ec;
+  --dz-font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --dz-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+}

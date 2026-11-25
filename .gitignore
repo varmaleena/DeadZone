@@ -1,5 +1,7 @@
 # Dependencies and package stores
 node_modules/
+.local-tools/
+.browser-runtime/
 .pnpm-store/
 .uv-cache/
 

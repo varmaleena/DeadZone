@@ -9,6 +9,7 @@ type Command =
   | { id: number | string; type: 'detach'; tabId: number }
   | { id: number | string; type: 'profile'; tabId: number; profile: 'online' | 'offline' | 'flaky' }
   | { id: number | string; type: 'capture'; tabId: number }
+  | { id: number | string; type: 'ping'; tabId: number }
   // Kept for the runtime acceptance script.
   | { id: number | string; type: 'offline'; tabId: number; offline: boolean };
 
@@ -18,6 +19,7 @@ const FLAKY = { offline: false, latency: 3000, downloadThroughput: 6250, uploadT
 const FLAKY_DROP_AFTER_MS = 1000;
 
 const attached = new Set<number>();
+const owners = new Map<number, chrome.runtime.Port>();
 const dropTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
 void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
@@ -33,6 +35,7 @@ function clearDrop(tabId: number) {
 
 async function restore(tabId: number) {
   clearDrop(tabId);
+  owners.delete(tabId);
   if (!attached.has(tabId)) return;
   try {
     await emulate(tabId, ONLINE);
@@ -82,6 +85,9 @@ async function handle(command: Command): Promise<unknown> {
       })) as { data: string };
       return shot.data;
     }
+    case 'ping':
+      await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', { expression: '1', returnByValue: true });
+      return undefined;
     case 'detach':
       await restore(tabId);
       return undefined;
@@ -90,28 +96,48 @@ async function handle(command: Command): Promise<unknown> {
 
 chrome.runtime.onConnect.addListener((port) => {
   const tabs = new Set<number>();
+  let disconnected = false;
   port.onMessage.addListener(async (command: Command) => {
-    tabs.add(command.tabId);
     try {
+      const owner = owners.get(command.tabId);
+      if (command.type === 'attach') {
+        if (owner && owner !== port)
+          throw new Error('Another Deadzone window is auditing this tab. Keep only one sweep running.');
+        owners.set(command.tabId, port);
+        tabs.add(command.tabId);
+      } else if (owner !== port) {
+        throw new Error(
+          'The debugging connection ended before the sweep finished. Close DevTools and rerun from one Deadzone panel.',
+        );
+      }
       const data = await handle(command);
+      if (disconnected) {
+        await restore(command.tabId);
+        return;
+      }
       port.postMessage({ id: command.id, ok: true, data });
     } catch (error) {
-      port.postMessage({ id: command.id, error: String(error) });
+      if (command.type === 'attach' && owners.get(command.tabId) === port && !attached.has(command.tabId))
+        owners.delete(command.tabId);
+      if (!disconnected) port.postMessage({ id: command.id, error: String(error) });
     }
   });
   port.onDisconnect.addListener(() => {
-    for (const tabId of tabs) void restore(tabId);
+    disconnected = true;
+    for (const tabId of tabs) if (owners.get(tabId) === port) void restore(tabId);
   });
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   clearDrop(tabId);
   attached.delete(tabId);
+  owners.delete(tabId);
 });
 
 chrome.debugger.onDetach.addListener(({ tabId }) => {
   if (tabId !== undefined) {
     clearDrop(tabId);
     attached.delete(tabId);
+    owners.delete(tabId);
   }
 });

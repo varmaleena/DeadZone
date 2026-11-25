@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore';
 import QRCode from 'qrcode';
 import './style.css';
-import { logoMark, renderLanding, showSignInError } from './landing';
+import { brandName, logoMark, renderLanding, showSignInError } from './landing';
 
 // Old links used /demo; the read-only preview now lives at /preview.
 if (location.pathname.startsWith('/demo')) {
@@ -95,13 +95,13 @@ function layout() {
   document.title = 'Deadzone Console';
   root.innerHTML = `
     <header class="app-bar">
-      <a class="logo" href="/" aria-label="Deadzone home">${logoMark}<span>Deadzone</span></a>
+      <a class="logo" href="/" aria-label="Deadzone home">${logoMark}${brandName}</a>
       <span class="app-bar-divider"></span>
       <span class="app-bar-title">Offline-state auditing</span>
       <a class="app-bar-link" href="/preview">Preview</a>
       <button id="logout" class="btn btn-ghost-dark">Sign out</button>
     </header>
-    <aside>
+    <aside aria-label="Workspace navigation"><div class="workspace-label">Team workspace</div>
       <p>WORKSPACE</p>
       ${NAV.map(([path, label]) => `<a href="${path}">${label}</a>`).join('')}
     </aside>
@@ -525,7 +525,7 @@ function onboarding(user: User) {
   root.innerHTML = `
     <section class="auth-page">
      <div class="auth-card">
-      <a class="logo" href="/">${logoMark}<span>Deadzone</span></a>
+      <a class="logo" href="/">${logoMark}${brandName}</a>
       <p class="eyebrow">New workspace</p>
       <h1>Create your workspace</h1>
       <p>Sweeps, findings and Android field events from your team will appear here.</p>

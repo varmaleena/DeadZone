@@ -1,6 +1,6 @@
 {
   "projects": {
-    "default": "fbailogic26vrt-3003"
+    "default": "work-511514"
   },
   "targets": {
     "fbailogic26vrt-3003": {
@@ -13,6 +13,19 @@
         ],
         "freshcart-fixed": [
           "dz-3003-fixed"
+        ]
+      }
+    },
+    "work-511514": {
+      "hosting": {
+        "console": [
+          "work-511514"
+        ],
+        "freshcart-buggy": [
+          "dz-work-511514-buggy"
+        ],
+        "freshcart-fixed": [
+          "dz-work-511514-fixed"
         ]
       }
     }

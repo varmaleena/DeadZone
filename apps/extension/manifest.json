@@ -15,8 +15,8 @@
   "host_permissions": [
     "http://localhost/*",
     "http://127.0.0.1/*",
-    "https://dz-3003-buggy.web.app/*",
-    "https://dz-3003-fixed.web.app/*"
+    "https://dz-work-511514-buggy.web.app/*",
+    "https://dz-work-511514-fixed.web.app/*"
   ],
   "optional_host_permissions": ["http://*/*", "https://*/*"],
   "action": {

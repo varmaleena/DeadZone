@@ -1,0 +1,22 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const firebaseRequire = createRequire(require.resolve('firebase-tools/package.json'));
+const archiver = firebaseRequire('archiver');
+const manifest = JSON.parse(fs.readFileSync('apps/extension/dist/manifest.json'));
+const name = `deadzone-extension-${manifest.version}.zip`;
+fs.mkdirSync('releases', { recursive: true });
+await new Promise((resolve, reject) => {
+  const output = fs.createWriteStream(path.join('releases', name));
+  const archive = archiver('zip', { zlib: { level: 9 } });
+  output.on('close', resolve);
+  output.on('error', reject);
+  archive.on('error', reject);
+  archive.pipe(output);
+  archive.directory('apps/extension/dist', false);
+  archive.finalize().catch(reject);
+});
+fs.mkdirSync('apps/console/dist/downloads', { recursive: true });
+fs.copyFileSync(path.join('releases', name), path.join('apps/console/dist/downloads', name));
+console.log(`Packaged extension and staged /downloads/${name} for Hosting`);

@@ -86,10 +86,20 @@ export function markPlaced(id: string) {
  */
 export async function submitOrder(): Promise<void> {
   if (!navigator.onLine) throw new Error('offline');
-  await new Promise((resolve) => setTimeout(resolve, ORDER_PROCESSING_MS));
-  if (!navigator.onLine) throw new Error('offline');
-  const response = await fetch('/api/products.json', { cache: 'no-store' });
-  if (!response.ok) throw new Error('Order service unavailable');
+  const controller = new AbortController();
+  const disconnected = () => controller.abort(new Error('offline'));
+  window.addEventListener('offline', disconnected, { once: true });
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(resolve, ORDER_PROCESSING_MS);
+      controller.signal.addEventListener('abort', () => { clearTimeout(timer); reject(new Error('offline')); }, { once: true });
+    });
+    if (!navigator.onLine) throw new Error('offline');
+    const response = await fetch('/api/products.json', { cache: 'no-store', signal: controller.signal });
+    if (!response.ok) throw new Error('Order service unavailable');
+  } finally {
+    window.removeEventListener('offline', disconnected);
+  }
 }
 
 export function readOrders(): LocalOrder[] {

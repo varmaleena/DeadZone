@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <link rel="icon" type="image/png" href="/deadzone-logo.png" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Deadzone</title>
@@ -9,9 +10,10 @@
   <body>
     <header class="topbar">
       <div class="brand">
-        <img src="/icons/icon-32.png" alt="" width="20" height="20" />
+        <span class="brand-symbol"><img src="/deadzone-logo.png" alt="" /></span>
         <div>
-          <strong>DEADZONE</strong>
+          <strong>Deadzone</strong>
+          <small>Offline state auditor</small>
           <span id="workspace-label">Local only</span>
         </div>
       </div>
@@ -21,135 +23,305 @@
       </div>
     </header>
 
-    <nav class="tabs" role="tablist" aria-label="Deadzone sections">
-      <button role="tab" data-tab="setup" id="tab-setup">Setup</button>
-      <button role="tab" data-tab="sweep" id="tab-sweep" aria-selected="true">Sweep</button>
-      <button role="tab" data-tab="results" id="tab-results">Results</button>
-      <button role="tab" data-tab="settings" id="tab-settings">Settings</button>
-    </nav>
+    <div class="workspace-shell">
+      <nav class="tabs" role="tablist" aria-label="Deadzone sections" aria-orientation="horizontal">
+        <p class="nav-caption">WORKSPACE</p>
+        <button role="tab" data-tab="setup" id="tab-setup">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="4" />
+            <path d="M8 12h8M12 8v8" /></svg
+          ><span>Setup</span>
+        </button>
+        <button role="tab" data-tab="sweep" id="tab-sweep" aria-selected="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5zM9 9l6 3-6 3z" /></svg><span>Sweep</span>
+        </button>
+        <button role="tab" data-tab="results" id="tab-results">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V4M5 20h15M10 16v-5M15 16V7M20 16v-8" /></svg
+          ><span>Results</span>
+        </button>
+        <button role="tab" data-tab="settings" id="tab-settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 7h14M5 17h14" />
+            <circle cx="9" cy="7" r="3" />
+            <circle cx="15" cy="17" r="3" /></svg
+          ><span>Settings</span>
+        </button>
+        <div class="nav-note">
+          <span class="nav-note-dot"></span><strong>Built for offline</strong>
+          <p>Local evaluation.<br />Cloud when you choose.</p>
+        </div>
+      </nav>
 
-    <main>
-      <!-- SETUP -->
-      <section id="view-setup" class="view" role="tabpanel" aria-labelledby="tab-setup" hidden>
-        <h1>Set up Deadzone</h1>
-        <ol class="checklist">
-          <li id="step-model">
-            <h2>1. On-device model</h2>
-            <p id="model-help">Checking whether Gemini Nano is available in this Chrome…</p>
-            <button id="prepare" class="secondary">Download on-device model</button>
-            <progress id="model-progress" value="0" max="100" hidden></progress>
-          </li>
-          <li id="step-workspace">
-            <h2>2. Team workspace <small>(optional)</small></h2>
-            <p>
-              Copy the workspace ID and pairing code from the Deadzone console's Settings page. Without a workspace,
-              results stay on this computer.
-            </p>
-            <label>Workspace ID <input id="workspace" autocomplete="off" spellcheck="false" /></label>
-            <label
-              >Pairing code
-              <input id="pair-code" maxlength="8" autocomplete="off" spellcheck="false" placeholder="8 characters"
-            /></label>
-            <div class="row">
-              <button id="pair">Pair workspace</button>
-              <button id="unpair" class="ghost" hidden>Unpair</button>
+      <main id="workspace-content" tabindex="0" aria-label="Deadzone workspace content">
+        <!-- SETUP -->
+        <section id="view-setup" class="view" role="tabpanel" aria-labelledby="tab-setup" hidden>
+          <div class="page-intro">
+            <p class="eyebrow">WORKSPACE / SETUP</p>
+            <h1>A reliable audit starts here.</h1>
+            <p>Check your device, connect your team, and choose the application you want to test.</p>
+          </div>
+          <ol class="checklist setup-grid">
+            <li id="step-model">
+              <div class="card-heading">
+                <span class="card-step">01</span>
+                <div>
+                  <p class="eyebrow">DEVICE</p>
+                  <h2>On-device intelligence</h2>
+                </div>
+              </div>
+              <p class="card-description">Gemini Nano evaluates screens locally when this browser supports it.</p>
+              <div class="readiness-note">
+                <span class="status-dot"></span>
+                <p id="model-help">Checking Gemini Nano availability...</p>
+              </div>
+              <button id="prepare" class="secondary">Download on-device model</button
+              ><progress id="model-progress" value="0" max="100" hidden></progress>
+              <p class="card-footnote">Pending checks can be evaluated in the cloud after reconnecting.</p>
+            </li>
+            <li id="step-workspace">
+              <div class="card-heading">
+                <span class="card-step">02</span>
+                <div>
+                  <p class="eyebrow">COLLABORATION</p>
+                  <h2>Connect a workspace</h2>
+                </div>
+                <span class="optional-label">Optional</span>
+              </div>
+              <p class="card-description">
+                Pair with your team to sync audit runs and findings. Local sweeps work without pairing.
+              </p>
+              <label
+                >Workspace ID<input
+                  id="workspace"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="Your team's workspace ID" /></label
+              ><label
+                >Pairing code<input
+                  id="pair-code"
+                  maxlength="8"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="8-character code"
+              /></label>
+              <div class="row">
+                <button id="pair" class="primary">Connect workspace</button
+                ><button id="unpair" class="ghost" hidden>Disconnect</button>
+              </div>
+              <p class="card-footnote">Generate a pairing code in your console's Settings page.</p>
+            </li>
+            <li id="step-target">
+              <div class="card-heading">
+                <span class="card-step">03</span>
+                <div>
+                  <p class="eyebrow">APPLICATION</p>
+                  <h2>Choose your target</h2>
+                </div>
+              </div>
+              <p class="card-description">
+                Open your app in the active Chrome tab. Deadzone requests access to that site when the sweep starts.
+              </p>
+              <div class="target-box">
+                <span class="target-icon" aria-hidden="true">↗</span>
+                <p class="mono" id="target-url">No tab selected</p>
+              </div>
+            </li>
+          </ol>
+        </section>
+
+        <!-- SWEEP -->
+        <section id="view-sweep" class="view" role="tabpanel" aria-labelledby="tab-sweep">
+          <div class="page-intro">
+            <p class="eyebrow">TESTING / NEW SWEEP</p>
+            <h1>Put every connection to the test.</h1>
+            <p>Replay real user actions, capture the offline experience, and inspect what changes.</p>
+          </div>
+          <div class="sweep-layout">
+            <div class="card journey-card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">TEST PLAN</p>
+                  <h2>User journeys</h2>
+                </div>
+                <span class="optional-label" id="plan-count">Actions</span>
+              </div>
+              <p class="card-description">
+                Each action is captured online, then repeated under the selected network conditions.
+              </p>
+              <ul id="plan-list" class="plan-list"></ul>
+              <details class="advanced-editor">
+                <summary>Edit sweep plan (JSON)</summary>
+                <textarea id="plan" rows="14" spellcheck="false" aria-label="Sweep plan JSON"></textarea>
+                <p id="plan-error" class="error" role="alert"></p>
+              </details>
             </div>
-          </li>
-          <li id="step-target">
-            <h2>3. App to test</h2>
-            <p>
-              Open your web app in the active tab. Deadzone asks for access to that site only when you start a sweep.
-            </p>
-            <p class="mono" id="target-url">No tab selected</p>
-          </li>
-        </ol>
-      </section>
+            <div class="sweep-options">
+              <div class="card">
+                <div class="card-heading">
+                  <div>
+                    <p class="eyebrow">CONDITIONS</p>
+                    <h2>Network profiles</h2>
+                  </div>
+                </div>
+                <p class="card-description">Choose how connectivity should fail.</p>
+                <label class="network-option"
+                  ><input type="checkbox" id="profile-offline" checked /><span
+                    ><strong>Offline</strong><small>Cut the connection before the action.</small></span
+                  ></label
+                ><label class="network-option"
+                  ><input type="checkbox" id="profile-flaky" /><span
+                    ><strong>Flaky connection</strong><small>Slow the request, then drop the signal.</small></span
+                  ></label
+                >
+              </div>
+              <details class="card source-context">
+                <summary><span>Source context</span><span class="optional-label">Optional</span></summary>
+                <p class="card-description">Link application files when you want source-specific fix suggestions.</p>
+                <input id="sources" type="file" multiple webkitdirectory />
+                <pre id="source-list" class="mono small">No folder linked</pre>
+                <label class="toggle share-option"
+                  ><input type="checkbox" id="share-source" /> Send linked files to cloud Gemini when diagnosing</label
+                >
+              </details>
+            </div>
+          </div>
+          <div class="sweep-launch">
+            <div>
+              <strong>Ready to run?</strong>
+              <p>Keep the application tab selected. Deadzone restores its connection when the sweep ends.</p>
+            </div>
+            <div class="row">
+              <button id="start" class="primary">Start sweep ↗</button
+              ><button id="cancel" class="ghost" disabled>Cancel</button>
+            </div>
+          </div>
+          <div id="live" class="live card" hidden>
+            <div class="section-heading">
+              <h2>Audit in progress</h2>
+              <span class="live-indicator">Running</span>
+            </div>
+            <progress id="progress" value="0" max="1"></progress>
+            <p id="step-text" class="small"></p>
+          </div>
+          <div id="live-results" class="cards"></div>
+        </section>
 
-      <!-- SWEEP -->
-      <section id="view-sweep" class="view" role="tabpanel" aria-labelledby="tab-sweep">
-        <h1>Sweep</h1>
-        <div class="card">
-          <h2>User actions</h2>
-          <ul id="plan-list" class="plan-list"></ul>
-          <details>
-            <summary>Edit sweep plan (JSON)</summary>
-            <textarea id="plan" rows="14" spellcheck="false" aria-label="Sweep plan JSON"></textarea>
-            <p id="plan-error" class="error" role="alert"></p>
-          </details>
-        </div>
-        <div class="card">
-          <h2>Network profiles</h2>
-          <label class="toggle"><input type="checkbox" id="profile-offline" checked /> Offline</label>
-          <label class="toggle"
-            ><input type="checkbox" id="profile-flaky" /> Flaky (slow, then drops mid-request)</label
-          >
-        </div>
-        <details class="card">
-          <summary>Link source folder (for code fixes)</summary>
-          <p>
-            Pick your app's folder. Only application source files are used (no dependencies, build output, tests or
-            secret files), up to 60 KB.
-          </p>
-          <input id="sources" type="file" multiple webkitdirectory />
-          <pre id="source-list" class="mono small">No folder linked</pre>
-          <label class="toggle"
-            ><input type="checkbox" id="share-source" /> Send these files to cloud Gemini when diagnosing</label
-          >
-        </details>
-        <div class="row sticky-actions">
-          <button id="start" class="primary">Start sweep</button>
-          <button id="cancel" class="ghost" disabled>Cancel</button>
-        </div>
-        <div id="live" class="live" hidden>
-          <progress id="progress" value="0" max="1"></progress>
-          <p id="step-text" class="small"></p>
-        </div>
-        <div id="live-results" class="cards"></div>
-      </section>
+        <!-- RESULTS -->
+        <section id="view-results" class="view" role="tabpanel" aria-labelledby="tab-results" hidden>
+          <div class="page-intro">
+            <p class="eyebrow">QUALITY / AUDIT RESULTS</p>
+            <h1>Offline reliability, in focus.</h1>
+            <p>Review what happened, inspect the evidence, and decide what needs attention.</p>
+          </div>
+          <div id="results-summary"></div>
+          <div class="row">
+            <button id="diagnose" class="primary">Diagnose in cloud</button>
+            <button id="baseline" class="secondary">Save as baseline</button>
+            <button id="export" class="ghost">Export JSON</button>
+          </div>
+          <h2 id="findings-title" hidden>Findings</h2>
+          <div id="findings" class="cards"></div>
+          <div class="section-heading">
+            <h2>Screen checks</h2>
+            <span id="visible-check-count" class="small"></span>
+          </div>
+          <div class="result-filters" aria-label="Filter screen checks">
+            <label class="search-field"
+              >Search checks<input id="result-search" type="search" placeholder="Screen, action or evidence…"
+            /></label>
+            <label
+              >Severity<select id="result-severity">
+                <option value="">All severities</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+                <option value="none">None</option>
+                <option value="pending">Pending</option>
+              </select></label
+            >
+            <label
+              >Evaluation<select id="result-origin">
+                <option value="">All models</option>
+                <option value="on_device">On device</option>
+                <option value="cloud">Cloud</option>
+                <option value="pending">Pending</option>
+              </select></label
+            >
+          </div>
+          <div id="results" class="cards"></div>
+        </section>
 
-      <!-- RESULTS -->
-      <section id="view-results" class="view" role="tabpanel" aria-labelledby="tab-results" hidden>
-        <div id="results-summary"></div>
-        <div class="row">
-          <button id="diagnose" class="primary">Diagnose in cloud</button>
-          <button id="baseline" class="secondary">Save as baseline</button>
-          <button id="export" class="ghost">Export JSON</button>
-        </div>
-        <h2 id="findings-title" hidden>Findings</h2>
-        <div id="findings" class="cards"></div>
-        <h2>Checks</h2>
-        <div id="results" class="cards"></div>
-      </section>
+        <!-- DETAIL -->
+        <section id="view-detail" class="view" hidden>
+          <button id="back" class="ghost">← Back to results</button>
+          <div id="detail"></div>
+        </section>
 
-      <!-- DETAIL -->
-      <section id="view-detail" class="view" hidden>
-        <button id="back" class="ghost">← Back to results</button>
-        <div id="detail"></div>
-      </section>
-
-      <!-- SETTINGS -->
-      <section id="view-settings" class="view" role="tabpanel" aria-labelledby="tab-settings" hidden>
-        <h1>Settings</h1>
-        <div class="card">
-          <h2>On-device model</h2>
-          <p id="settings-model">—</p>
-          <button id="recheck" class="secondary">Check again</button>
-        </div>
-        <div class="card">
-          <h2>Judging rubric</h2>
-          <dl id="rubric" class="kv"></dl>
-        </div>
-        <div class="card">
-          <h2>Local data</h2>
-          <p>Results, baseline and screenshots stored on this computer.</p>
-          <button id="clear-local" class="ghost">Clear local results</button>
-        </div>
-        <div class="card">
-          <h2>About</h2>
-          <p id="about"></p>
-        </div>
-      </section>
-    </main>
+        <!-- SETTINGS -->
+        <section id="view-settings" class="view" role="tabpanel" aria-labelledby="tab-settings" hidden>
+          <div class="page-intro">
+            <p class="eyebrow">WORKSPACE / PREFERENCES</p>
+            <h1>Your audit environment.</h1>
+            <p>Review device readiness, evaluation settings, and the data stored on this computer.</p>
+          </div>
+          <div class="settings-grid">
+            <div class="card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">INFERENCE</p>
+                  <h2>Model readiness</h2>
+                </div>
+              </div>
+              <p id="settings-model" class="card-description">Checking availability...</p>
+              <button id="recheck" class="secondary">Check readiness</button>
+              <p class="card-footnote">Device support and model downloads are managed by Chrome.</p>
+            </div>
+            <div class="card policy-card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">EVALUATION</p>
+                  <h2>Current audit policy</h2>
+                </div>
+                <span class="optional-label">Read only</span>
+              </div>
+              <p class="card-description">The timing, model, and image limits applied to new checks.</p>
+              <dl id="rubric" class="kv"></dl>
+            </div>
+            <div class="card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">STORAGE</p>
+                  <h2>Local audit data</h2>
+                </div>
+              </div>
+              <p class="card-description">
+                Recent results, screenshots, and your baseline are stored on this computer.
+              </p>
+              <div class="storage-note">
+                Clearing local data does not delete findings already synced to a team workspace.
+              </div>
+              <button id="clear-local" class="ghost danger-action">Clear local results</button>
+            </div>
+            <div class="card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">PRODUCT</p>
+                  <h2>About Deadzone</h2>
+                </div>
+              </div>
+              <p class="card-description">Offline-state auditing through Firebase AI Logic.</p>
+              <p id="about" class="version-label"></p>
+              <div class="resource-links">
+                <a href="https://work-511514.web.app/" target="_blank" rel="noopener">Team console ↗</a
+                ><a href="https://github.com/varmaleena/DeadZone" target="_blank" rel="noopener"
+                  >Source &amp; documentation ↗</a
+                >
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
 
     <footer class="statusbar">
       <span id="status" role="status">Ready</span>

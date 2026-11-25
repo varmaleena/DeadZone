@@ -53,6 +53,13 @@ interface Check extends AuditResult {
   thumbOffline: string;
 }
 
+interface SweepMeta {
+  expectedChecks: number;
+  status: 'running' | 'complete' | 'cancelled' | 'interrupted';
+  targetUrl: string;
+  error?: string;
+}
+
 const env = import.meta.env;
 const MAX_STORED_SWEEPS = 1;
 
@@ -63,6 +70,7 @@ const state = {
   runRef: undefined as DocumentReference | undefined,
   unsubscribeSync: undefined as (() => void) | undefined,
   results: [] as Check[],
+  sweepMeta: undefined as SweepMeta | undefined,
   baseline: [] as AuditResult[],
   findings: [] as Finding[],
   images: new Map<string, { data: string; mimeType: string }>(),
@@ -89,8 +97,13 @@ function firebase(): FirebaseServices {
   ));
 }
 
-const adapter = (model: GenerativeModel): JudgeAdapter => ({
+const adapter = (model: GenerativeModel, deviceOnly = false): JudgeAdapter => ({
   async generate(prompt, image) {
+    // The SDK may construct a cloud-only model when the browser API is absent.
+    // Never invoke it during a local sweep unless the device model is actually ready.
+    if (deviceOnly && (await checkNano()) !== 'available') {
+      throw new Error('On-device model is not ready. Saved pending without making a cloud request.');
+    }
     const response = await model.generateContent(image ? [prompt, { inlineData: image }] : prompt);
     return response.response.text();
   },
@@ -162,6 +175,7 @@ function status(message: string) {
 }
 
 function showView(name: 'setup' | 'sweep' | 'results' | 'settings' | 'detail') {
+  $('workspace-content').scrollTop = 0;
   for (const view of ['setup', 'sweep', 'results', 'settings', 'detail']) {
     $(`view-${view}`).hidden = view !== name;
   }
@@ -170,6 +184,7 @@ function showView(name: 'setup' | 'sweep' | 'results' | 'settings' | 'detail') {
       'aria-selected',
       String(tab.dataset.tab === name || (name === 'detail' && tab.dataset.tab === 'results')),
     );
+    tab.tabIndex = tab.getAttribute('aria-selected') === 'true' ? 0 : -1;
   });
   void chrome.storage.local.set({ lastTab: name === 'detail' ? 'results' : name }).catch(() => undefined);
 }
@@ -273,6 +288,78 @@ function checkCard(check: Check): HTMLElement {
   return card;
 }
 
+function renderCheckList() {
+  const search = ($('result-search') as HTMLInputElement).value.trim().toLowerCase();
+  const severity = ($('result-severity') as HTMLSelectElement).value;
+  const origin = ($('result-origin') as HTMLSelectElement).value;
+  const filtered = state.results.filter((check) => {
+    const text =
+      `${check.route} ${check.input.actionLabel} ${check.verdict?.evidence ?? check.error ?? ''}`.toLowerCase();
+    return (
+      (!search || text.includes(search)) &&
+      (!severity || (check.verdict?.severity ?? 'pending') === severity) &&
+      (!origin || check.judgedBy === origin)
+    );
+  });
+  setText('visible-check-count', `${filtered.length} of ${state.results.length} checks`);
+  const rows = filtered.map((check) => {
+    const verdict = check.verdict;
+    const pendingReason = check.error?.includes('contradicts measured visible content')
+      ? 'Readable content was detected. Review the evidence or diagnose in cloud.'
+      : check.error?.includes('On-device model is not ready')
+        ? 'On-device evaluation was unavailable. Diagnose in cloud when connected.'
+        : 'No verified verdict yet. Inspect the evidence or retry evaluation.';
+    const row = el(
+      'button',
+      {
+        className: 'result-row',
+        type: 'button',
+        ariaLabel: `Inspect ${check.route} ${verdict ? STATE_LABEL[verdict.state] : 'pending'}`,
+      },
+      el(
+        'span',
+        { className: 'screen-column' },
+        el('strong', {}, check.route),
+        el('small', {}, check.input.actionLabel),
+      ),
+      el(
+        'span',
+        { className: 'outcome-column' },
+        el('strong', {}, verdict ? STATE_LABEL[verdict.state] : 'Awaiting evaluation'),
+        el('small', {}, verdict?.evidence ?? pendingReason),
+      ),
+      badge(check.judgedBy),
+      el(
+        'span',
+        { className: `badge ${verdict?.severity === 'none' ? 'passing' : (verdict?.severity ?? 'pending')}` },
+        verdict?.severity === 'none' ? 'Pass' : (verdict?.severity ?? 'Pending'),
+      ),
+      el('span', { className: 'row-arrow', ariaHidden: 'true' }, '↗'),
+    );
+    row.addEventListener('click', () => openCheck(check));
+    return row;
+  });
+  $('results').replaceChildren(
+    ...(rows.length
+      ? rows
+      : [
+          el(
+            'div',
+            { className: 'empty' },
+            state.results.length
+              ? 'No checks match these filters.'
+              : 'Run a sweep to capture your first screen checks.',
+          ),
+        ]),
+  );
+}
+
+function currentRunScore() {
+  return state.sweepMeta?.status === 'complete' && state.results.length === state.sweepMeta.expectedChecks
+    ? score(state.results, state.sweepMeta.expectedChecks)
+    : null;
+}
+
 function renderResults() {
   const results = state.results;
   const summary = $('results-summary');
@@ -280,8 +367,10 @@ function renderResults() {
   if (!results.length) {
     summary.append(el('div', { className: 'empty' }, 'No sweep yet. Run a sweep from the Sweep tab.'));
   } else {
-    const value = score(results);
-    const color = value === null ? '#64748b' : value === 100 ? '#16a34a' : value >= 60 ? '#d97706' : '#dc2626';
+    const value = currentRunScore();
+    const incomplete = state.sweepMeta?.status !== 'complete' || results.length !== state.sweepMeta?.expectedChecks;
+    const color =
+      value === null ? 'var(--pending)' : value === 100 ? 'var(--ok)' : value >= 60 ? 'var(--medium)' : 'var(--high)';
     const counts = {
       high: results.filter((r) => r.verdict?.severity === 'high').length,
       medium: results.filter((r) => r.verdict?.severity === 'medium').length,
@@ -299,13 +388,28 @@ function renderResults() {
         el(
           'div',
           {},
-          el('h2', {}, value === null ? 'Offline score pending' : `Offline score ${value}/100`),
+          el(
+            'h2',
+            {},
+            incomplete
+              ? 'Sweep incomplete — no overall score'
+              : value === null
+                ? 'Offline score pending'
+                : `Offline score ${value}/100`,
+          ),
+          el(
+            'p',
+            { className: 'coverage-note' },
+            state.sweepMeta
+              ? `${results.length} of ${state.sweepMeta.expectedChecks} planned checks recorded${incomplete ? '. Untested screens are not counted as passes.' : '.'}`
+              : 'This saved run has no coverage record. Run a new sweep before relying on an overall score.',
+          ),
           el(
             'div',
             { className: 'counts' },
-            el('span', { className: 'badge', style: 'background:#dc2626' }, `${counts.high} high`),
-            el('span', { className: 'badge', style: 'background:#d97706' }, `${counts.medium} medium`),
-            el('span', { className: 'badge', style: 'background:#16a34a' }, `${counts.ok} ok`),
+            el('span', { className: 'badge high' }, `${counts.high} high`),
+            el('span', { className: 'badge medium' }, `${counts.medium} medium`),
+            el('span', { className: 'badge passing' }, `${counts.ok} ok`),
             el('span', { className: 'badge pending' }, `${counts.pending} pending`),
           ),
           el(
@@ -317,10 +421,10 @@ function renderResults() {
       ),
     );
   }
-  $('results').replaceChildren(...results.map(checkCard));
+  renderCheckList();
   $('findings-title').hidden = !state.findings.length;
   $('findings').replaceChildren(...state.findings.map(findingCard));
-  ($('baseline') as HTMLButtonElement).disabled = score(results) !== 100;
+  ($('baseline') as HTMLButtonElement).disabled = currentRunScore() !== 100;
   ($('diagnose') as HTMLButtonElement).disabled = !results.length || state.running;
 }
 
@@ -487,9 +591,15 @@ function renderPlan() {
   const list = $('plan-list');
   try {
     const plan = JSON.parse(($('plan') as HTMLTextAreaElement).value) as PlanAction[];
+    setText('plan-count', `${plan.length} actions`);
     list.replaceChildren(
       ...plan.map((a) =>
-        el('li', {}, el('span', {}, a.label ?? a.id), el('span', { className: 'mono small' }, a.route)),
+        el(
+          'li',
+          {},
+          el('span', { className: 'journey-label' }, a.label ?? a.id),
+          el('span', { className: 'mono small' }, a.route),
+        ),
       ),
     );
     setText('plan-error', '');
@@ -503,6 +613,7 @@ async function persistResults() {
     await chrome.storage.local.set({
       lastSweep: state.results.slice(-MAX_STORED_SWEEPS * 60),
       lastFindings: state.findings,
+      lastSweepMeta: state.sweepMeta ?? null,
     });
   } catch (error) {
     status(`Could not save results locally: ${String(error)}`);
@@ -592,14 +703,17 @@ async function startSweep() {
   }
 
   const tabId = tab.id;
+  let heartbeat: ReturnType<typeof setInterval> | undefined;
   state.cancelled = false;
   state.running = true;
   state.results = [];
+  state.sweepMeta = { expectedChecks: plan.length * profiles.length, status: 'running', targetUrl: origin };
   state.findings = [];
   $('live-results').replaceChildren();
   $('live').hidden = false;
   ($('start') as HTMLButtonElement).disabled = true;
   ($('cancel') as HTMLButtonElement).disabled = false;
+  await persistResults();
 
   try {
     const services = firebase();
@@ -607,6 +721,7 @@ async function startSweep() {
     renderRubric();
     plan = plan.slice(0, state.rubric.maxChecks);
     const total = plan.length * profiles.length;
+    state.sweepMeta.expectedChecks = total;
     ($('progress') as HTMLProgressElement).max = total;
 
     state.runRef = undefined;
@@ -629,6 +744,7 @@ async function startSweep() {
     }
 
     await command({ type: 'attach', tabId });
+    heartbeat = setInterval(() => void command({ type: 'ping', tabId }).catch(() => undefined), 10000);
     for (const action of plan) {
       for (const profile of profiles) {
         if (state.cancelled) break;
@@ -671,7 +787,7 @@ async function startSweep() {
         setText('step-text', `${action.label ?? action.id} · ${profile} · judging on device`);
         const judged = await judge(
           input,
-          adapter(services.deviceModel),
+          adapter(services.deviceModel, true),
           'on_device',
           image,
           state.rubric.spinnerTimeout,
@@ -701,7 +817,12 @@ async function startSweep() {
     }
 
     state.results = regressions(state.results, state.baseline) as Check[];
-    if (state.runRef) {
+    state.sweepMeta.status = state.cancelled
+      ? 'cancelled'
+      : state.results.length === total
+        ? 'complete'
+        : 'interrupted';
+    if (state.runRef && state.sweepMeta.status === 'complete') {
       const { db } = services;
       void finishRun(db, state.workspaceId, state.runRef.id, state.results).catch((error) => status(String(error)));
       void resolveFindings(db, state.workspaceId, state.runRef.id, state.results)
@@ -709,7 +830,7 @@ async function startSweep() {
         .catch(() => undefined);
     }
     await persistResults();
-    const value = score(state.results);
+    const value = currentRunScore();
     status(
       state.cancelled
         ? 'Cancelled. Results kept on this computer.'
@@ -718,8 +839,14 @@ async function startSweep() {
     renderResults();
     if (!state.cancelled) showView('results');
   } catch (error) {
-    status(String(error instanceof Error ? error.message : error));
+    state.sweepMeta.status = 'interrupted';
+    state.sweepMeta.error = String(error instanceof Error ? error.message : error);
+    await persistResults();
+    status(
+      `Sweep interrupted after ${state.results.length} of ${state.sweepMeta.expectedChecks} checks. ${state.sweepMeta.error}`,
+    );
   } finally {
+    clearInterval(heartbeat);
     try {
       await command({ type: 'detach', tabId });
     } catch {
@@ -761,6 +888,14 @@ async function runDiagnosis() {
       state.results[i] = { ...check, ...updated };
       if (state.runRef) await writeCheck(services.db, state.workspaceId, state.runRef.id, state.results[i]);
     }
+    const remaining = state.results.filter((check) => check.judgedBy === 'pending').length;
+    if (remaining) {
+      await persistResults();
+      renderResults();
+      throw new Error(
+        `${remaining} check(s) still pending. Cloud evaluation did not complete; retry after checking connectivity and App Check.`,
+      );
+    }
     status('Diagnosing root causes in the cloud…');
     const share = ($('share-source') as HTMLInputElement).checked;
     const diagnosis = await diagnose(
@@ -769,7 +904,7 @@ async function runDiagnosis() {
       share ? state.sources : {},
     );
     state.findings = diagnosis.findings;
-    if (state.runRef) {
+    if (state.runRef && state.sweepMeta?.status === 'complete') {
       await writeFindings(services.db, state.workspaceId, state.runRef.id, diagnosis.findings);
       await finishRun(services.db, state.workspaceId, state.runRef.id, state.results);
     }
@@ -785,7 +920,8 @@ async function runDiagnosis() {
 
 async function saveAsBaseline() {
   try {
-    if (score(state.results) !== 100) throw new Error('A baseline needs every check judged and passing.');
+    if (currentRunScore() !== 100)
+      throw new Error('A baseline needs a complete sweep with every planned check judged and passing.');
     state.baseline = state.results;
     await chrome.storage.local.set({
       baseline: state.results.map(({ input, verdict, judgedBy }) => ({ input, verdict, judgedBy })),
@@ -891,6 +1027,32 @@ async function updateTarget() {
 }
 
 function wire() {
+  const desktopNavigation = window.matchMedia('(min-width: 1024px)');
+  const orientNavigation = () =>
+    document
+      .querySelector('.tabs')!
+      .setAttribute('aria-orientation', desktopNavigation.matches ? 'vertical' : 'horizontal');
+  orientNavigation();
+  desktopNavigation.addEventListener('change', orientNavigation);
+  document.querySelector('.tabs')!.addEventListener('keydown', (event) => {
+    const keyEvent = event as KeyboardEvent;
+    const tabs = [...document.querySelectorAll<HTMLButtonElement>('[data-tab]')];
+    const current = tabs.indexOf(document.activeElement as HTMLButtonElement);
+    if (current < 0) return;
+    const nextKey = desktopNavigation.matches ? 'ArrowDown' : 'ArrowRight';
+    const previousKey = desktopNavigation.matches ? 'ArrowUp' : 'ArrowLeft';
+    let next = current;
+    if (keyEvent.key === nextKey) next = (current + 1) % tabs.length;
+    else if (keyEvent.key === previousKey) next = (current - 1 + tabs.length) % tabs.length;
+    else if (keyEvent.key === 'Home') next = 0;
+    else if (keyEvent.key === 'End') next = tabs.length - 1;
+    else return;
+    keyEvent.preventDefault();
+    tabs[next].click();
+    tabs[next].focus();
+  });
+  for (const id of ['result-search', 'result-severity', 'result-origin'])
+    $('' + id).addEventListener(id === 'result-search' ? 'input' : 'change', renderCheckList);
   document
     .querySelectorAll<HTMLButtonElement>('[data-tab]')
     .forEach((tab) => tab.addEventListener('click', () => showView(tab.dataset.tab as 'setup')));
@@ -942,8 +1104,9 @@ function wire() {
     updateNanoChip();
   });
   $('clear-local').addEventListener('click', async () => {
-    await chrome.storage.local.remove(['lastSweep', 'lastFindings', 'baseline']);
+    await chrome.storage.local.remove(['lastSweep', 'lastFindings', 'baseline', 'lastSweepMeta']);
     state.results = [];
+    state.sweepMeta = undefined;
     state.findings = [];
     state.baseline = [];
     renderResults();
@@ -973,8 +1136,16 @@ async function init() {
   updateNetworkChip();
   void updateTarget();
 
-  const stored = await chrome.storage.local.get(['lastSweep', 'lastFindings', 'baseline', 'workspaceId', 'lastTab']);
+  const stored = await chrome.storage.local.get([
+    'lastSweep',
+    'lastFindings',
+    'baseline',
+    'workspaceId',
+    'lastTab',
+    'lastSweepMeta',
+  ]);
   state.results = (stored.lastSweep as Check[]) ?? [];
+  state.sweepMeta = (stored.lastSweepMeta as SweepMeta | null) ?? undefined;
   state.findings = (stored.lastFindings as Finding[]) ?? [];
   state.baseline = (stored.baseline as AuditResult[]) ?? [];
   state.workspaceId = (stored.workspaceId as string) ?? '';

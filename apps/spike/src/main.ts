@@ -1,15 +1,18 @@
 import { initFirebase, verdictSchema } from '@deadzone/shared';
 import './style.css';
 const env = (import.meta as unknown as { env: Record<string, string> }).env;
-document.querySelector('#app')!.innerHTML =
-  `<header>DEADZONE <span>FOUNDATIONS / SPIKE A</span></header><main><p class="eyebrow">OFFLINE IS THE TEST.</p><h1>Intelligence that stays<br>when the signal leaves.</h1><p>Verify image + text inference on your device. No cloud fallback. No simulated verdicts.</p><section><h2>On-device readiness</h2><p>1. Configure Firebase and register your App Check debug token.<br>2. Select a PNG/JPEG screenshot and prepare Nano while online.<br>3. Disable the network, then judge the screenshot.</p><label>Screenshot <input id="image" type="file" accept="image/png,image/jpeg"></label><div><button id="verify">Verify App Check</button><button id="prepare">Prepare on-device model</button><button id="judge" disabled>Judge offline</button></div><p id="status" role="status">Waiting for setup</p><pre id="output">No verdict yet.</pre></section></main>`;
+document.querySelector('#app')!.innerHTML = `
+<header class="app-header"><a class="brand" href="http://127.0.0.1:5191/"><span class="brand-symbol"><img src="/deadzone-logo.png" alt="" /></span><span>Deadzone<small>Offline state auditor</small></span></a><span class="header-label">Device readiness</span><a class="back-link" href="http://127.0.0.1:5191/preview">Workspace preview ↗</a></header>
+<main><nav class="breadcrumb" aria-label="Breadcrumb"><a href="http://127.0.0.1:5191/">Deadzone</a><span>/</span>Device readiness</nav><div class="page-heading"><p class="eyebrow">ON-DEVICE INFERENCE</p><h1>Ready when the network isn’t.</h1><p>Check whether this browser can evaluate a screenshot with Gemini Nano, then test it offline.</p></div>
+<div class="readiness-layout"><section aria-labelledby="setup-title"><div class="section-heading"><span class="step">01</span><div><h2 id="setup-title">Prepare your device</h2><p>Complete these steps while you’re online.</p></div></div><ol class="instructions"><li>Verify access to the Firebase project.</li><li>Choose a screenshot from the app you’re testing.</li><li>Prepare Nano, then disconnect and run the check.</li></ol><label class="upload" for="image"><strong>Application screenshot</strong><span>PNG or JPEG</span><input id="image" type="file" accept="image/png,image/jpeg" /></label><div class="actions"><button id="verify" class="secondary">Verify App Check</button><button id="prepare">Prepare on-device model</button></div><p class="helper">Nano availability depends on Chrome, device support and the downloaded model.</p></section>
+<section aria-labelledby="result-title"><div class="section-heading"><span class="step">02</span><div><h2 id="result-title">Run the offline check</h2><p>Uses the on-device model only.</p></div></div><div class="status-panel"><span class="eyebrow">DEVICE STATUS</span><p id="status" role="status" aria-live="polite">Waiting for setup</p></div><button id="judge" disabled>Judge screenshot offline</button><h3>Evaluation result</h3><pre id="output" aria-label="Evaluation result">No verdict yet.</pre></section></div><footer>Deadzone · Device readiness<span>On-device evaluation through Firebase AI Logic</span></footer></main>`;
 const status = document.querySelector<HTMLElement>('#status')!;
 const output = document.querySelector<HTMLElement>('#output')!;
 const judge = document.querySelector<HTMLButtonElement>('#judge')!;
 let model: ReturnType<typeof initFirebase>['deviceModel'] | undefined;
 document.querySelector<HTMLButtonElement>('#prepare')!.onclick = async () => {
   try {
-    status.textContent = 'Preparing Nano…';
+    status.textContent = 'Preparing Nano...';
     model = initFirebase(
       {
         apiKey: env.VITE_FIREBASE_API_KEY,
@@ -37,7 +40,7 @@ judge.onclick = async () => {
   }
   judge.disabled = true;
   try {
-    status.textContent = 'Judging on device…';
+    status.textContent = 'Judging on device...';
     const data = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = reject;
@@ -61,7 +64,7 @@ judge.onclick = async () => {
 
 document.querySelector<HTMLButtonElement>('#verify')!.onclick = async () => {
   try {
-    status.textContent = 'Verifying App Check…';
+    status.textContent = 'Verifying App Check...';
     const services = initFirebase(
       {
         apiKey: env.VITE_FIREBASE_API_KEY,

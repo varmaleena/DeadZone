@@ -1,14 +1,8 @@
 // Public home page shown to signed-out visitors.
 import './landing.css';
 
-export const logoMark = `<svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
-  <rect width="32" height="32" rx="8" fill="#13232f"/>
-  <rect x="7" y="19" width="3.2" height="6" rx="1" fill="#9fb4c2"/>
-  <rect x="12.4" y="15" width="3.2" height="10" rx="1" fill="#9fb4c2"/>
-  <rect x="17.8" y="11" width="3.2" height="14" rx="1" fill="#9fb4c2"/>
-  <rect x="23.2" y="7" width="3.2" height="18" rx="1" fill="#9fb4c2"/>
-  <path d="M6 6 L26.5 26.5" stroke="#f97066" stroke-width="2.6" stroke-linecap="round"/>
-</svg>`;
+export const logoMark = `<span class="mark brand-symbol" aria-hidden="true"><img src="/deadzone-logo.png" alt="" /></span>`;
+export const brandName = `<span class="brand-name">Deadzone<small>Offline state auditor</small></span>`;
 
 const icon = (path: string) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
@@ -118,7 +112,7 @@ export function renderLanding(root: HTMLElement, onSignIn: () => void): void {
   <div class="lp">
     <header class="lp-nav">
       <div class="lp-wrap lp-nav-inner">
-        <a class="lp-logo" href="/" aria-label="Deadzone home">${logoMark}<span>deadzone</span></a>
+        <a class="lp-logo" href="/" aria-label="Deadzone home">${logoMark}${brandName}</a>
         <nav aria-label="Primary">
           <a href="#how">How it works</a>
           <a href="#loop">The loop</a>
@@ -260,10 +254,11 @@ export function renderLanding(root: HTMLElement, onSignIn: () => void): void {
 
     <footer class="lp-footer">
       <div class="lp-wrap lp-footer-inner">
-        <a class="lp-logo" href="/">${logoMark}<span>deadzone</span></a>
+        <a class="lp-logo" href="/">${logoMark}${brandName}</a>
         <nav aria-label="Footer">
           <a href="/preview">Live preview</a>
-          <a href="https://dz-3003-buggy.web.app" target="_blank" rel="noopener">Demo app</a>
+          <a href="/downloads/deadzone-extension-0.2.0.zip" download>Chrome extension</a>
+          <a href="https://dz-work-511514-buggy.web.app" target="_blank" rel="noopener">Demo app</a>
           <a href="https://github.com/varmaleena/DeadZone" target="_blank" rel="noopener">GitHub</a>
         </nav>
         <p>Built with Firebase AI Logic · Apache-2.0 · Demo data is fictional.</p>

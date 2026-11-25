@@ -12,9 +12,11 @@ An offline-state auditor for web and Android apps. Deadzone cuts the network on 
 ![Chrome MV3](https://img.shields.io/badge/Chrome-Manifest_V3-4285F4?logo=googlechrome&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 
-[Live console](https://fbailogic26vrt-3003.web.app) · [Extension download](releases/deadzone-extension-0.2.0.zip) · [Demo app (buggy)](https://dz-3003-buggy.web.app) · [Demo app (fixed)](https://dz-3003-fixed.web.app) · [Workspace preview](https://fbailogic26vrt-3003.web.app/preview)
+[Live console](https://work-511514.web.app) · [Extension download](https://work-511514.web.app/downloads/deadzone-extension-0.2.0.zip) · [Demo app (buggy)](https://dz-work-511514-buggy.web.app) · [Demo app (fixed)](https://dz-work-511514-fixed.web.app) · [Workspace preview](https://work-511514.web.app/preview)
 
 </div>
+
+Deployment uses the personal Firebase project `work-511514`. Web sign-in, pairing and hosted checkout tests pass. Cloud diagnosis is pending Gemini billing credits; see [migration status](docs/personal-project-migration.md). For cloud commands on this Windows workspace, first run `. ./scripts/personal-cloud-env.ps1` in PowerShell.
 
 ---
 
@@ -248,7 +250,7 @@ A prebuilt evaluation build is included: **[releases/deadzone-extension-0.2.0.zi
 
 ### 5. Run a sweep
 
-1. Open the demo app (`https://dz-3003-buggy.web.app`) or your own app in the active tab.
+1. Open the demo app (`https://dz-work-511514-buggy.web.app`) or your own app in the active tab.
 2. On **Sweep**, review the plan and click **Start sweep**. Optionally disconnect the network first.
 3. On **Results**, reconnect and select **Diagnose in cloud**. Link the app's source folder to receive a code fix.
 

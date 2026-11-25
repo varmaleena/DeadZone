@@ -34,5 +34,6 @@ if (build) {
   run('build apps/freshcart (fixed)', 'apps/freshcart', 'vite/bin/vite.js', ['build', '--outDir', 'dist-fixed'], {
     VITE_OFFLINE_FIX: 'true',
   });
+  await import('./package-extension.mjs');
 }
 console.log(build ? '\nTypecheck and build passed.' : '\nTypecheck passed.');

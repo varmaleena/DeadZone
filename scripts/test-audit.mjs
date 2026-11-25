@@ -39,6 +39,10 @@ const ok = {
 // Plain-code overrides beat the model.
 assert.equal(a.postprocess(ok, { ...input.heuristics, formLost: true }).state, 'data_loss');
 assert.equal(a.postprocess(ok, { ...input.heuristics, spinnerMs: 10000 }).state, 'infinite_spinner');
+assert.equal(
+  a.postprocess({ ...ok, state: 'blank_screen' }, { ...input.heuristics, spinnerMs: 10000 }).state,
+  'infinite_spinner',
+);
 assert.equal(a.postprocess({ ...ok, state: 'raw_error', severity: 'low' }, input.heuristics).severity, 'medium');
 
 // Code fences are tolerated; malformed output is retried once, then pending.
@@ -71,9 +75,26 @@ const malformed = await a.judge(
 assert.equal(malformed.judgedBy, 'pending');
 assert.equal(calls, 2);
 
+// A real on-device run called a readable cart blank: defer contradictory evidence, never invent a pass.
+const falseBlank = await a.judge(
+  input,
+  { generate: async () => JSON.stringify({ ...ok, state: 'blank_screen' }) },
+  'on_device',
+);
+assert.equal(falseBlank.judgedBy, 'pending');
+assert.equal(falseBlank.verdict, null);
+assert.match(falseBlank.error, /contradicts measured visible content/);
+const actualBlank = await a.judge(
+  { ...input, heuristics: { ...input.heuristics, visibleTextLen: 0 } },
+  { generate: async () => JSON.stringify({ ...ok, state: 'blank_screen' }) },
+  'on_device',
+);
+assert.equal(actualBlank.verdict.state, 'blank_screen');
+
 // Scores stay null while anything is pending.
 assert.equal(a.score([unavailable]), null);
 assert.equal(a.score([{ input, verdict: ok, judgedBy: 'on_device' }]), 100);
+assert.equal(a.score([{ input, verdict: ok, judgedBy: 'on_device' }], 5), null);
 
 // Regressions are matched by action + network profile.
 const baseline = [{ input, verdict: ok, judgedBy: 'on_device' }];
